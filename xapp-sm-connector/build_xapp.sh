@@ -1,11 +1,11 @@
 #!/bin/bash
 
 export DEBUG=0
-export CONNECTOR_DIR=/home/xapp-oai/xapp-sm-connector
+export CONNECTOR_DIR=/home/xapp-sm-connector
 
 # these are replaced through the dockerfile
 export GNB_ID
-export XAPP_ID=24
+export XAPP_ID
 
 # get build clean from cli arguments
 if [ $# -ne 0 ]; then

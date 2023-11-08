@@ -4,7 +4,7 @@
 ARG SCHEMA_PATH=schemas
 ARG XAPP_DIR=base-xapp
 ARG CONNECTOR_DIR=xapp-sm-connector
-ARG STAGE_DIR=/home/${CONNECTOR_DIR}
+ARG STAGE_DIR=/home/
 ARG DBAAS_SERVICE_HOST=10.0.2.12
 ARG DBAAS_SERVICE_PORT="6379"
 
@@ -33,7 +33,7 @@ ENV RMR_RTG_SVC="9999" \
   DBAAS_SERVICE_PORT=${DBAAS_SERVICE_PORT}
 
 COPY ${CONNECTOR_DIR} ${STAGE_DIR}
-COPY ${XAPP_DIR} /home/${XAPP_DIR}
+COPY ${XAPP_DIR} ${STAGE_DIR}
 
 WORKDIR ${STAGE_DIR}
 
@@ -143,8 +143,8 @@ RUN apt-get update && apt-get install -y software-properties-common \
     && add-apt-repository ppa:deadsnakes/ppa \
     && apt-get install -y python3.8 \
     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1 \
-    && update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1 
-RUN pip3 install protobuf
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1 \
+    && pip3 install protobuf
 
 # ssh server 
 RUN mkdir /var/run/sshd \
