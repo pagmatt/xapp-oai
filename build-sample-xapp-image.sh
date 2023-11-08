@@ -15,8 +15,7 @@ E2RTMANSIM_IP=10.0.2.15
 XAPP_IP=10.0.2.24  # generic xApp IP
 
 # default image names
-IMAGE_NAME=sample-xapp
-MODEL_DIR=sample-xapp
+IMAGE_NAME=base-xapp
 CONNECTOR_DIR=xapp-sm-connector
 DOCKER_FILE=Dockerfile_oai_xapp
 
