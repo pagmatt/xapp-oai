@@ -4,7 +4,7 @@
 ARG SCHEMA_PATH=schemas
 ARG XAPP_DIR=base-xapp
 ARG CONNECTOR_DIR=xapp-sm-connector
-ARG STAGE_DIR=/home/
+ARG STAGE_DIR=/home
 ARG DBAAS_SERVICE_HOST=10.0.2.12
 ARG DBAAS_SERVICE_PORT="6379"
 
@@ -32,8 +32,11 @@ ENV RMR_RTG_SVC="9999" \
   DBAAS_SERVICE_HOST=${DBAAS_SERVICE_HOST} \
   DBAAS_SERVICE_PORT=${DBAAS_SERVICE_PORT}
 
-COPY ${CONNECTOR_DIR} ${STAGE_DIR}
-COPY ${XAPP_DIR} ${STAGE_DIR}
+RUN mkdir ${STAGE_DIR}/${CONNECTOR_DIR} \
+    && mkdir ${STAGE_DIR}/${XAPP_DIR}
+
+COPY ${CONNECTOR_DIR} ${STAGE_DIR}/${CONNECTOR_DIR}/
+COPY ${XAPP_DIR} ${STAGE_DIR}/${XAPP_DIR}/
 
 WORKDIR ${STAGE_DIR}
 
@@ -106,13 +109,13 @@ RUN apt-get update  \
   && make -j ${nproc} \
   && make install \
   && cd ${STAGE_DIR} \
-  && rm -rf rapidjson \
+  && rm -rf rapidjson 
 ##-----------------------------------
 # Now install the program
 #------------------------------------
 # build connector
-  && export CPATH=$CPATH:/usr/local/include \
-  && cd src \
+RUN export CPATH=$CPATH:/usr/local/include \
+  && cd ${STAGE_DIR}/${CONNECTOR_DIR}/src \
   && make clean \
   && make -j ${nproc} \
   && make install \
@@ -130,13 +133,15 @@ RUN apt-get update  \
 
 
 # install protobuf c 
-RUN wget https://github.com/protocolbuffers/protobuf/releases/download/v21.7/protobuf-python-4.21.7.tar.gz \
+RUN cd ${STAGE_DIR} \
+    && wget https://github.com/protocolbuffers/protobuf/releases/download/v21.7/protobuf-python-4.21.7.tar.gz \
     && mkdir pbuf && mv protobuf-python-4.21.7.tar.gz pbuf && cd pbuf \
     && tar -xzf protobuf-python-4.21.7.tar.gz --no-same-owner \
     && cd protobuf-4.21.7/ \
     && ./configure \
     && make -j`nproc` \
-    && make install
+    && make install \
+    && rm -rf ${STAGE_DIR}/pbuf 
 
 # install python3.8 and protobuf-python
 RUN apt-get update && apt-get install -y software-properties-common \
