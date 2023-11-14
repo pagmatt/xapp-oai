@@ -31,13 +31,15 @@
 #include <mutex>
 #include <condition_variable>
 #include <unordered_map>
+#include <algorithm>
+#include <ctime>
+#include <unistd.h>
 #include <chrono>
 #include <tuple>
-
-#include "../xapp-asn/e2ap/subscription_delete_request.hpp"
-#include "../xapp-asn/e2ap/subscription_delete_response.hpp"
-#include "../xapp-asn/e2ap/subscription_request.hpp"
-#include "../xapp-asn/e2ap/subscription_response.hpp"
+#include <rmr/RIC_message_types.h>
+#include "e2ap_action.hpp"
+#include "e2ap_subscription_request.hpp"
+#include "e2sm_subscription.hpp"
 
 #define SUBSCR_SUCCESS 1
 #define SUBSCR_ERR_TX -1
@@ -86,20 +88,18 @@ typedef enum {
     request_pending = 1,
     request_success,
     request_failed,
-    delete_request_pending,
-    delete_request_success,
-    delete_request_failed,
     request_duplicate
 }Subscription_Status_Types;
 
-using transaction_identifier = unsigned char*;
+
+using transaction_identifier = std::string;
 using transaction_status = Subscription_Status_Types;
 
 class SubscriptionHandler {
 			    
 public:
 
-  SubscriptionHandler(unsigned int timeout_seconds = 10);
+  SubscriptionHandler(unsigned int timeout_seconds = 30);
   
   template <typename AppTransmitter>
   int manage_subscription_request(transaction_identifier, AppTransmitter &&);
@@ -107,14 +107,16 @@ public:
   template <typename AppTransmitter>
   int manage_subscription_delete_request(transaction_identifier, AppTransmitter &&);
 
-  void manage_subscription_response(int message_type, transaction_identifier id, const void *message_payload, size_t message_len);
+  void manage_subscription_response(int message_type, transaction_identifier id);
 
-  int const get_request_status(transaction_identifier);
+  int  get_request_status(transaction_identifier);
   bool set_request_status(transaction_identifier, transaction_status);
   bool is_request_entry(transaction_identifier);
   void set_timeout(unsigned int);
   void clear(void);
   void set_ignore_subs_resp(bool b){_ignore_subs_resp = b;};
+
+  void print_subscription_status(){ for(auto it:status_table){std::cout << it.first << "::" << it.second << std::endl;}};
 
 private:
   
@@ -137,17 +139,10 @@ private:
 
 template <typename AppTransmitter>
 bool SubscriptionHandler::add_transmitter_entry(transaction_identifier id, AppTransmitter &&trans){
+	  mdclog_write(MDCLOG_INFO,"Entry added for Transaction ID: %s",id.c_str());
 
   // add entry in hash table if it does not exist
-  //auto search = trans_table.find(id);
-  auto search = trans_table.begin();
-  while (search != trans_table.end()) {
-    if (strcmp((const char*) search->first, (const char*) id) == 0) {
-      break;
-    }
-    ++search;
-  }
-
+  auto search = trans_table.find(id);
   if(search != trans_table.end()){
     return false;
   }
@@ -172,9 +167,7 @@ int SubscriptionHandler::manage_subscription_request(transaction_identifier rmr_
       mdclog_write(MDCLOG_ERR, "%s, %d : Error adding new subscription request %s to queue because request with identical key already present",  __FILE__, __LINE__, rmr_trans_id);
       return SUBSCR_ERR_DUPLICATE;
     }
-    else {
-      std::cout << "Added status pending to request " << rmr_trans_id << std::endl;
-    }}
+  }
 
 
   // acquire lock ...
@@ -186,84 +179,24 @@ int SubscriptionHandler::manage_subscription_request(transaction_identifier rmr_
   if (!flg){
     // clear state
     delete_request_entry(rmr_trans_id);
-    mdclog_write(MDCLOG_ERR, "%s, %d :: Error transmitting subscription request %s", __FILE__, __LINE__, rmr_trans_id );
+    mdclog_write(MDCLOG_ERR, "%s, %d :: Error transmitting subscription request %s", __FILE__, __LINE__, rmr_trans_id.c_str() );
     return SUBSCR_ERR_TX;
   } else {
-	  mdclog_write(MDCLOG_INFO, "%s, %d :: Transmitted subscription request for trans_id %s", __FILE__, __LINE__, rmr_trans_id );
+	  mdclog_write(MDCLOG_INFO, "%s, %d :: Transmitted subscription request for trans_id %s", __FILE__, __LINE__, rmr_trans_id.c_str() );
 	  add_transmitter_entry(rmr_trans_id, tx);
 
   }
 
   // record time stamp ..
   auto start = std::chrono::system_clock::now();
-  res = SUBSCR_ERR_UNKNOWN;
+  std::chrono::milliseconds t_out(_time_out);
+
+  //the wait functionality has been removed.
 
 
-  while(1){
-	  // release lock and wait to be woken up
-	  _cv.get()->wait_for(_local_lock, _time_out);
-
-	  // we have woken and acquired data_lock
-	  // check status and return appropriate object
-	  int status = get_request_status(rmr_trans_id);
-
-	  if (status == request_success){
-		  mdclog_write(MDCLOG_INFO, "Successfully subscribed for request for trans_id %s", rmr_trans_id);
-		  res = SUBSCR_SUCCESS;
-		  break;
-	  }
-
-	  if (status == request_pending){
-		  // woken up spuriously or timed out
-		  auto end = std::chrono::system_clock::now();
-		  std::chrono::duration<double> f = end - start;
-
-		  if ( f > _time_out){
-
-			  mdclog_write(MDCLOG_ERR, "%s, %d:: Subscription request with transaction id %s timed out waiting for response ", __FILE__, __LINE__, rmr_trans_id);
-
-			  //res = SUBSCR_ERR_TIMEOUT;
-			  //sunny side scenario. assuming subscription response is received.
-			  res = SUBSCR_SUCCESS;
-			  break;
-		  }
-		  else{
-			  	 mdclog_write(MDCLOG_INFO, "Subscription request with transaction id %s Waiting for response....", rmr_trans_id);
-			  	 continue;
-		  }
-
-	  }
-
-	  if(status == request_failed){
-		  mdclog_write(MDCLOG_ERR, "Error :: %s, %d : Subscription Request with transaction id %s  got failure response .. \n", __FILE__, __LINE__, rmr_trans_id);
-		  res = SUBSCR_ERR_FAIL;
-		  break;
-	  }
-
-	  if (status == request_duplicate){
-		  mdclog_write(MDCLOG_ERR, "Error :: %s, %d : Subscription Request with transaction id %s is duplicate : subscription already present in table .. \n", __FILE__, __LINE__, rmr_trans_id);
-		  res = SUBSCR_ERR_DUPLICATE;
-		  break;
-
-	  }
-
-	  // if we are here, some spurious
-	  // status obtained or request failed . we return appropriate error code
-	  mdclog_write(MDCLOG_ERR, "Error :: %s, %d : Spurious time out caused by invalid state of request %s, and state = %d. Deleting request entry and failing .. \n", __FILE__, __LINE__, rmr_trans_id, status);
-	  res = SUBSCR_ERR_UNKNOWN;
-	  break;
-  };
-
-  delete_request_entry(rmr_trans_id);
-
-  // release data lock
   _local_lock.unlock();
- // std::cout <<"Returning  res = " << res << " for request = " << rmr_trans_id  << std::endl;
-  return res;
+  // std::cout <<"Returning  res = " << res << " for request = " << rmr_trans_id  << std::endl;
+   return res;
 };
-
-std::unordered_map<transaction_identifier, transaction_status>::iterator find_transaction(std::unordered_map<transaction_identifier, transaction_status> map,
-                transaction_identifier id);
-bool transaction_present(std::unordered_map<transaction_identifier, transaction_status> map, transaction_identifier id);
 
 #endif

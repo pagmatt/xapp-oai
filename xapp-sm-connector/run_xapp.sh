@@ -1,3 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
-cd /home/xapp-sm-connector/init/ && python3 init_script.py config-file.json
+cd /root/xapp/init/ && python3.8 init_script.py $CONFIG_FILE
+

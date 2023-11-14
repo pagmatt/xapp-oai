@@ -31,18 +31,7 @@
 #include <mdclog/mdclog.h>
 
 #include "a1_helper.hpp"
-#include "e2ap_control.hpp"
-#include "e2ap_control_response.hpp"
-#include "e2ap_indication.hpp"
-#include "subscription_delete_request.hpp"
-#include "subscription_delete_response.hpp"
-#include "subscription_helper.hpp"
-#include "subscription_request.hpp"
-#include "subscription_request.hpp"
-#include "subscription_response.hpp"
-#include "e2sm_subscription.hpp"
 #include "subs_mgmt.hpp"
-#include "../agent_connector.hpp"
 
 #define MAX_RMR_RECV_SIZE 2<<15
 
@@ -51,10 +40,19 @@ class XappMsgHandler{
 private:
 	std::string xapp_id;
 	SubscriptionHandler *_ref_sub_handler;
+    bool using_protobuf;
 public:
 	//constructor for xapp_id.
 	 XappMsgHandler(std::string xid){xapp_id=xid; _ref_sub_handler=NULL;};
-	 XappMsgHandler(std::string xid, SubscriptionHandler &subhandler){xapp_id=xid; _ref_sub_handler=&subhandler;};
+	 XappMsgHandler(std::string xid, SubscriptionHandler &subhandler, bool protobuf){
+        xapp_id=xid;
+        _ref_sub_handler=&subhandler;
+        using_protobuf = protobuf;
+
+        if (protobuf) {
+            std::cout << "Initialized XappMsgHandler with Protobuf" << std::endl;
+        }
+     };
 
 	 void operator() (rmr_mbuf_t *, bool*);
 
@@ -68,7 +66,7 @@ public:
 	 void testfunction() {std::cout << "<<<<<<<<<<<<<<<<<<IN TEST FUNCTION<<<<<<<<<<<<<<<" << std::endl;}
 };
 
-void process_ric_indication(int message_type, transaction_identifier id, const void *message_payload, size_t message_len);
-uint8_t procRicIndication(E2AP_PDU_t *e2apMsg, transaction_identifier gnb_id);
+void process_ric_indication(int message_type, unsigned char* id, const void* message_payload, size_t message_len, bool using_protobuf);
+uint8_t procRicIndication(E2AP_PDU_t* e2apMsg, unsigned char* gnb_id, bool using_protobuf);
 
 #endif /* XAPP_MSG_XAPP_MSG_HPP_ */

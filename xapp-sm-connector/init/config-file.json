@@ -5,23 +5,27 @@
             {
                 "name": "hwxapp",
                 "image": {
-                    "registry": "nexus3.o-ran-sc.org:10002",
-                    "name": "o-ran-sc/ric-app-hw",
-                    "tag": "1.0.6"
+                    "registry": "image-registry.openshift-image-registry.svc:5000",
+                    "name": "deployment-pipeline/xapp-sched-slicing",
+                    "tag": "latest",
+		            "pull_secret": "regcred"
                	}
             }
         ],
         "messaging": {
             "ports": [
                 {
+                    "name": "http",
+                    "container": "hwxapp",
+                    "port": 8080,
+                    "description": "http service"
+                },
+                {
                     "name": "rmr-data",
                     "container": "hwxapp",
                     "port": 4560,
-                    "rxMessages": [ 
-						"RIC_SUB_RESP", 
-						"A1_POLICY_REQ", "RIC_HEALTH_CHECK_REQ" 
-                    ],
-                    "txMessages": [ "RIC_SUB_REQ", "A1_POLICY_RESP", "A1_POLICY_QUERY", "RIC_HEALTH_CHECK_RESP" ],
+                    "rxMessages": ["RIC_SUB_RESP", "A1_POLICY_REQ", "RIC_HEALTH_CHECK_REQ", "RIC_INDICATION"],
+                    "txMessages": ["RIC_SUB_REQ", "A1_POLICY_RESP", "A1_POLICY_QUERY", "RIC_HEALTH_CHECK_RESP", "RIC_CONTROL"],
                     "policies": [1],
                     "description": "rmr receive data port for HWxapp"
                 },
@@ -37,13 +41,8 @@
             "protPort": "tcp:4560",
             "maxSize": 2072,
             "numWorkers": 1,
-            "txMessages": [
-                "RIC_SUB_REQ", "A1_POLICY_RESP", "A1_POLICY_QUERY", "RIC_HEALTH_CHECK_RESP"
-            ],
-            "rxMessages": [
-                "RIC_SUB_RESP", 
-				"A1_POLICY_REQ", "RIC_HEALTH_CHECK_REQ"              
-            ],
+            "txMessages": ["RIC_SUB_REQ", "A1_POLICY_RESP", "A1_POLICY_QUERY", "RIC_HEALTH_CHECK_RESP", "RIC_CONTROL"],
+            "rxMessages": ["RIC_SUB_RESP", "A1_POLICY_REQ", "RIC_HEALTH_CHECK_REQ", "RIC_INDICATION"],
 	    "policies": [1]
         }
   }

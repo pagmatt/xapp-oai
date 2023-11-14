@@ -25,40 +25,26 @@
 # to set up the initializations (route config map, variables etc) for the main
 # xapp process
 
-import json;
-import sys;
-import os;
-import signal;
-import time;
-import ast;
+import json
+import sys
+import os
+import signal
+import time
+import ast
+
+from register_xapp import register_xapp
+from xapp_utils import set_target_gnb
+
 
 def signal_handler(signum, frame):
-    print("Received signal {0}\n".format(signum));
+    print("Received signal {0}\n".format(signum))
     if(xapp_subprocess == None or xapp_pid == None):
-        print("No xapp running. Quiting without sending signal to xapp\n");
+        print("No xapp running. Quiting without sending signal to xapp\n")
     else:
-        print("Sending signal {0} to xapp ...".format(signum));
-        xapp_subprocess.send_signal(signum);
-        
-
-def parseConfigJson(config):
-    
-    for k1 in config.keys():
-        if k1 in ParseSection:
-            result = ParseSection[k1](config);
-            if result == False:
-                    return False;
-
-        
-#        for k2 in config[k1].keys():
-            #print(k2);
-#            if k2 in ParseSection:
-#                result = ParseSection[k2](config[k1]);
-#                if result == False:
-#                    return False;
+        print("Sending signal {0} to xapp ...".format(signum))
+        xapp_subprocess.send_signal(signum)
 
 
-        
 def getMessagingInfo(config):
      if 'messaging' in config.keys() and 'ports' in config['messaging'].keys():
         port_list = config['messaging']['ports']
@@ -67,74 +53,66 @@ def getMessagingInfo(config):
                 lport = portdesc['port']
                 # Set the environment variable
                 os.environ["HW_PORT"] = str(lport)
-                return True;
+                return True
      if lport == 0:
-         print("Error! No valid listening port");
-         return False;
+         print("Error! No valid listening port")
+         return False
+
 
 def getXappName(config):
-    myKey = "xapp_name";
+    myKey = "xapp_name"
     if myKey not in config.keys():
-        print(("Error ! No information found for {0} in config\n".format(myKey)));
-        return False;
+        print(("Error ! No information found for {0} in config\n".format(myKey)))
+        return False
 
-    xapp_name = config[myKey];
-    print("Xapp Name is: " + xapp_name); 
-    os.environ["XAPP_NAME"] = xapp_name;
-
-default_routing_file = "/tmp/routeinfo/routes.txt";
-lport = 0;
-ParseSection = {};
-ParseSection["xapp_name"] = getXappName;
-ParseSection["messaging"] = getMessagingInfo;
+    xapp_name = config[myKey]
+    print("Xapp Name is: " + xapp_name) 
+    os.environ["XAPP_NAME"] = xapp_name
 
 
-#================================================================
 if __name__ == "__main__":
 
-    import subprocess;
-#    cmd = ["../src/hw_xapp_main"];
-    cmd = ["/usr/local/bin/hw_xapp_main"];
+    import subprocess
+    cmd = ["/usr/local/bin/hw_xapp_main"]
         
     if len(sys.argv) > 1:
-        config_file = sys.argv[1];
+        config_file = sys.argv[1]
     else:
-        print("Error! No configuration file specified\n");
-        sys.exit(1);
+        print("Error! No configuration file specified\n")
+        sys.exit(1)
         
     if len(sys.argv) > 2:
-        cmd[0] = sys.argv[2];
+        cmd[0] = sys.argv[2]
 
     with open(config_file, 'r') as f:
          try:
-             config = json.load(f);
+             config = json.load(f)
          except Exception as e:
-             print(("Error loading json file from {0}. Reason = {1}\n".format(config_file, e)));
-             sys.exit(1);
-             
-    result = parseConfigJson(config);
-    time.sleep(10);
-    if result == False:
-        print("Error parsing json. Not executing xAPP");
-        sys.exit(1);
+             print(("Error loading json file from {0}. Reason = {1}\n".format(config_file, e)))
+             sys.exit(1)
 
-    else:
+    # register signal handlers
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
-        # Register signal handlers
-        signal.signal(signal.SIGINT, signal_handler);
-        signal.signal(signal.SIGTERM, signal_handler);
+    # this needs to be done before the xApp has messages to receive,
+    # otherwise they will stop at the e2term 
+    print("Registering xApp with app manager")
+    register_xapp(config)
 
-        # Start the xAPP
-        #print("Executing xAPP ....");
-        xapp_subprocess = subprocess.Popen(cmd, shell = False, stdin=None, stdout=None, stderr = None);
-        xapp_pid = xapp_subprocess.pid;
+    print('Checking target gNB')
+    set_target_gnb(config)
 
-        # Periodically poll the process every 5 seconds to check if still alive
-        while(1):
-            xapp_status = xapp_subprocess.poll();
-            if xapp_status == None:
-                time.sleep(5);
-            else:
-                print("XaPP terminated via signal {0}\n".format(-1 * xapp_status));
-                break;
-                
+    # Start the xApp
+    print("Executing the xApp...");
+    xapp_subprocess = subprocess.Popen(cmd, shell=False, stdin=None, stdout=None, stderr = None)
+    xapp_pid = xapp_subprocess.pid
+
+    # Periodically poll the process every 5 seconds to check if still alive
+    while(1):
+        xapp_status = xapp_subprocess.poll()
+        if xapp_status == None:
+            time.sleep(5)
+        else:
+            print("xApp terminated via signal {0}\n".format(-1 * xapp_status))
+            break

@@ -26,7 +26,7 @@ XappRmr::XappRmr(std::string port, int rmrattempts){
 	_nattempts = rmrattempts;
 	_xapp_rmr_ctx = NULL;
 	_xapp_received_buff = NULL;
-	_xapp_send_buff =NULL;
+	_xapp_send_buff = NULL;
 	_rmr_is_ready = false;
 	_listen = false;
 
@@ -34,14 +34,19 @@ XappRmr::XappRmr(std::string port, int rmrattempts){
 
 XappRmr::~XappRmr(void){
 	// free memory
-	if(_xapp_received_buff)
+	if(_xapp_received_buff) {
 		rmr_free_msg(_xapp_received_buff);
+		_xapp_received_buff = NULL;
+	}
 
-	if(_xapp_send_buff)
+	if(_xapp_send_buff) {
 		rmr_free_msg(_xapp_send_buff);
+		_xapp_send_buff = NULL;
+	}
 
-	if (_xapp_rmr_ctx){
+	if (_xapp_rmr_ctx) {
 		rmr_close(_xapp_rmr_ctx);
+		_xapp_send_buff = NULL;
 	}
 };
 
@@ -121,7 +126,12 @@ bool XappRmr::xapp_rmr_send(xapp_rmr_header *hdr, void *payload){
 		else if (_xapp_send_buff->state == RMR_OK){
 			mdclog_write(MDCLOG_INFO,"Message Sent: RMR State = RMR_OK");
 			rmr_attempts = 0;
-			_xapp_send_buff = NULL;
+
+			if (_xapp_send_buff) {
+				rmr_free_msg(_xapp_send_buff);
+				_xapp_send_buff = NULL;
+			}
+
 			return true;
 		}
 		else
@@ -133,6 +143,12 @@ bool XappRmr::xapp_rmr_send(xapp_rmr_header *hdr, void *payload){
 		}
 		sleep(1);
 	}
+
+	if (_xapp_send_buff) {
+		rmr_free_msg(_xapp_send_buff);
+		_xapp_send_buff = NULL;
+	}
+
 	return false;
 }
 

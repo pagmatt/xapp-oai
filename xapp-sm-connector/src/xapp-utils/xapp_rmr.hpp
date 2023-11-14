@@ -121,7 +121,6 @@ void XappRmr::xapp_rmr_receive(MsgHandler&& msgproc, XappRmr *parent){
 		mdclog_write(MDCLOG_INFO, "Listening at Thread: %s",  thread_id.str().c_str());
 
 		this->_xapp_received_buff = rmr_rcv_msg( rmr_context, this->_xapp_received_buff );
-		//this->_xapp_received_buff = rmr_rcv_msg( rmr_context, this->_xapp_received_buff );
 		//this->_xapp_received_buff = rmr_call( rmr_context, this->_xapp_received_buff);
 
 		if( this->_xapp_received_buff->mtype < 0 || this->_xapp_received_buff->state != RMR_OK ) {
@@ -130,22 +129,15 @@ void XappRmr::xapp_rmr_receive(MsgHandler&& msgproc, XappRmr *parent){
 		}
 		else
 		{
-			mdclog_write(MDCLOG_INFO,"RMR Received Message of Type: %d, Message length: %d", this->_xapp_received_buff->mtype, this->_xapp_received_buff->len);
-
-			char printBuffer[4096] = {0};
-			char *tmp = printBuffer;
-			for (size_t i = 0; i < (size_t)_xapp_received_buff->len; ++i) {
-					snprintf(tmp, 3, "%02x", _xapp_received_buff->payload[i]);
-					tmp += 2;
-			}
-			mdclog_write(MDCLOG_INFO,"RMR Received Message: %s", printBuffer);
+			mdclog_write(MDCLOG_INFO,"RMR Received Message of Type: %d",this->_xapp_received_buff->mtype);
+			mdclog_write(MDCLOG_INFO,"RMR Received Message: %s",(char*)this->_xapp_received_buff->payload);
 
 		    //in case message handler returns true, need to resend the message.
 			msgproc(this->_xapp_received_buff, resend);
 
 			if(*resend){
-				mdclog_write(MDCLOG_INFO,"RMR Return to Sender Message of Type: %d, Message length: %d", this->_xapp_received_buff->mtype, this->_xapp_received_buff->len);
-				mdclog_write(MDCLOG_INFO,"RMR Return to Sender Message: %s", printBuffer);
+				mdclog_write(MDCLOG_INFO,"RMR Return to Sender Message of Type: %d",this->_xapp_received_buff->mtype);
+				mdclog_write(MDCLOG_INFO,"RMR Return to Sender Message: %s",(char*)this->_xapp_received_buff->payload);
 				rmr_rts_msg(rmr_context, this->_xapp_received_buff );
 				sleep(1);
 				*resend = false;

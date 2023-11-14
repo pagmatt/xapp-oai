@@ -6,9 +6,10 @@ HWSRC:=./
 UTILSRC=./xapp-utils
 MSGSRC:=./xapp-mgmt
 
-ASNSRC:=../asn1c_defs
+ASNSRC:=../defs_hwe2sm
 E2APSRC:=./xapp-asn/e2ap
 E2SMSRC:=./xapp-asn/e2sm
+XAPPAGENTSRC:=./xapp-agent
 
 ####### Logging library and flags
 CLOGFLAGS:= `pkg-config mdclog --cflags`
@@ -26,13 +27,15 @@ HWFLAGS= -I./
 UTILFLAGS= -I$(UTILSRC)
 MSGFLAGS= -I$(MSGSRC)
 
-ASNFLAGS=-I$(ASNSRC) -DASN_DISABLE_OER_SUPPORT
+ASNFLAGS=-I$(ASNSRC) -I/usr/local/include/riclibe2ap -DASN_DISABLE_OER_SUPPORT
 E2APFLAGS = -I$(E2APSRC)
 E2SMFLAGS = -I$(E2SMSRC)
 
+XAPPAGENTFLAGS = -I$(XAPPAGENTSRC)
+
 ########libs
 
-LIBS= -lsdl -lrmr_si  -lpthread -lm $(LOG_LIBS) $(CURL_LIBS) $(RNIB_LIBS)
+LIBS= -lsdl -lrmr_si -lriclibe2ap -lpthread -lm $(LOG_LIBS) $(CURL_LIBS) $(RNIB_LIBS)
 COV_FLAGS= -fprofile-arcs -ftest-coverage
 
 #######
@@ -44,6 +47,7 @@ MSG_SRC= $(wildcard $(MSGSRC)/*.cc)
 E2AP_SRC= $(wildcard $(E2APSRC)/*.cc)
 E2SM_SRC= $(wildcard $(E2SMSRC)/*.cc)
 ASN1C_SRC= $(wildcard $(ASNSRC)/*.c)
+XAPPAGENT_SRC= $(wildcard $(XAPPAGENTSRC)/*.cc)
 
 ##############Objects
 UTIL_OBJ=${UTIL_SRC:.cc=.o}
@@ -55,25 +59,25 @@ E2AP_OBJ = $(E2AP_SRC:.cc=.o)
 E2SM_OBJ = $(E2SM_SRC:.cc=.o)
 ASN1C_MODULES = $(ASN1C_SRC:.c=.o)
 
-$(ASN1C_MODULES): export CFLAGS = $(C_BASEFLAGS) $(ASNFLAGS)
-$(UTIL_OBJ):export CPPFLAGS=$(BASEFLAGS) $(UTILFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS) $(MSGFLAGS)
+$(ASN1C_MODULES): export CFLAGS = $(C_BASEFLAGS) $(ASNFLAGS) $(XAPPAGENTFLAGS)
+$(UTIL_OBJ):export CPPFLAGS=$(BASEFLAGS) $(UTILFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS) $(MSGFLAGS) $(XAPPAGENTFLAGS)
 
-$(MSG_OBJ):export CPPFLAGS=$(BASEFLAGS) $(MSGFLAGS) $(ASNFLAGS) $(E2APFLAGS) $(E2SMFLAGS)
-$(E2AP_OBJ): export CPPFLAGS = $(BASEFLAGS) $(ASNFLAGS) $(E2APFLAGS)
-$(E2SM_OBJ): export CPPFLAGS = $(BASEFLAGS) $(ASNFLAGS) $(E2SMFLAGS)
-$(XAPP_OBJ): export CPPFLAGS = $(BASEFLAGS) $(XAPPFLAGS) $(UTILFLAGS) $(MSGFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS)
+$(MSG_OBJ):export CPPFLAGS=$(BASEFLAGS) $(MSGFLAGS) $(ASNFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(XAPPAGENTFLAGS)
+$(E2AP_OBJ): export CPPFLAGS = $(BASEFLAGS) $(ASNFLAGS) $(E2APFLAGS) $(XAPPAGENTFLAGS)
+$(E2SM_OBJ): export CPPFLAGS = $(BASEFLAGS) $(ASNFLAGS) $(E2SMFLAGS) $(XAPPAGENTFLAGS)
+$(XAPP_OBJ): export CPPFLAGS = $(BASEFLAGS) $(XAPPFLAGS) $(UTILFLAGS) $(MSGFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS) $(XAPPAGENTFLAGS)
 
-$(HWXAPP_OBJ):export CPPFLAGS=$(BASEFLAGS) $(HWFLAGS) $(XAPPFLAGS) $(UTILFLAGS) $(MSGFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS)
+$(HWXAPP_OBJ):export CPPFLAGS=$(BASEFLAGS) $(HWFLAGS) $(XAPPFLAGS) $(UTILFLAGS) $(MSGFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS) $(XAPPAGENTFLAGS)
 
 OBJ= $(HWXAPP_OBJ) $(UTIL_OBJ) $(MSG_OBJ)  $(ASN1C_MODULES) $(E2AP_OBJ) $(E2SM_OBJ) $(XAPP_OBJ)
 
 print-%  : ; @echo $* = $($*)
 
 hw_xapp_main: $(OBJ)
-	$(CXX) -o $@  $(OBJ) $(LIBS) $(RNIBFLAGS) $(CPPFLAGS) $(CLOGFLAGS) agent_connector.cc
+	$(CXX) -o $@  $(OBJ) $(LIBS) $(RNIBFLAGS) $(CPPFLAGS) $(CLOGFLAGS) $(XAPPAGENT_SRC)
 
 install: hw_xapp_main
 	install  -D hw_xapp_main  /usr/local/bin/hw_xapp_main
 
 clean:
-	-rm *.o $(ASNSRC)/*.o $(E2APSRC)/*.o $(UTILSRC)/*.o $(E2SMSRC)/*.o  $(MSGSRC)/*.o $(SRC)/*.o hw_xapp_main 
+	-rm *.o $(ASNSRC)/*.o $(E2APSRC)/*.o $(UTILSRC)/*.o $(E2SMSRC)/*.o  $(MSGSRC)/*.o $(SRC)/*.o $(XAPPAGENTSRC)/*.o hw_xapp_main 
