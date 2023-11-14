@@ -30,7 +30,7 @@ void signalHandler( int signum ) {
 
 int main(int argc, char *argv[]){
 
-	bool using_protobuf = false;
+	bool using_protobuf = true;
 
 	// Get the thread id
 	std::thread::id my_id = std::this_thread::get_id();
