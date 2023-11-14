@@ -23,6 +23,7 @@ ARG STAGE_DIR
 ARG MDC_VER=0.0.4-1
 ARG RMR_VER=4.0.5
 ARG RNIB_VER=1.0.0
+ARG ASN1C_VER=0.1.0
 
 ENV RMR_RTG_SVC="9999" \
   RMR_SEED_RT="/home/${CONNECTOR_DIR}/init/routes.txt" \
@@ -109,11 +110,16 @@ RUN apt-get update  \
   && make -j ${nproc} \
   && make install \
   && cd ${STAGE_DIR} \
-  && rm -rf rapidjson 
-##-----------------------------------
-# Now install the program
-#------------------------------------
-# build connector
+  && rm -rf rapidjson \
+  #Install ASN1C library package hosted at packagecloud.io
+  && wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/riclibe2ap_${ASN1C_VER}_amd64.deb/download.deb \
+  && wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/riclibe2ap-dev_${ASN1C_VER}_amd64.deb/download.deb \
+  && dpkg -i riclibe2ap_${ASN1C_VER}_amd64.deb \
+  && dpkg -i riclibe2ap-dev_${ASN1C_VER}_amd64.deb 
+  ##-----------------------------------
+  # Now install the program
+  #------------------------------------
+  # build connector
 RUN export CPATH=$CPATH:/usr/local/include \
   && cd ${STAGE_DIR}/${CONNECTOR_DIR}/src \
   && make clean \
@@ -121,16 +127,15 @@ RUN export CPATH=$CPATH:/usr/local/include \
   && make install \
   && ldconfig \
   && sysctl -w net.ipv6.conf.lo.disable_ipv6=1 \
-###-----------------------------------
-## DRL Agent
-##------------------------------------
-## install packages and pip requirements
-#  && pip3 --no-cache-dir install -U pip \
-#  && pip3 --no-cache-dir install -r /home/${XAPP_DIR}/requirements.txt \
+  ###-----------------------------------
+  ## DRL Agent
+  ##------------------------------------
+  ## install packages and pip requirements
+  #  && pip3 --no-cache-dir install -U pip \
+  #  && pip3 --no-cache-dir install -r /home/${XAPP_DIR}/requirements.txt \
   && apt-get autoremove -y \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
-
 
 # install protobuf c 
 RUN cd ${STAGE_DIR} \
@@ -149,7 +154,7 @@ RUN apt-get update && apt-get install -y software-properties-common \
     && apt-get install -y python3.8 \
     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1 \
     && update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1 \
-    && pip3 install protobuf
+    && pip3 install protobuf requests
 
 # ssh server 
 RUN mkdir /var/run/sshd \

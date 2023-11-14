@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export DEBUG=0
+export DEBUG=1
 export CONNECTOR_DIR=/home/xapp-sm-connector
 
 # these are replaced through the dockerfile
