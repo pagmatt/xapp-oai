@@ -1,13 +1,9 @@
 import logging
-from os import lseek
 from xapp_control import *
 import xapp_control_ricbypass
 from  ran_messages_pb2 import *
 from time import sleep
-import socket
-from random import randint
-
-BYPASS_RIC = False
+BYPASS_RIC = True
 
 def main():
     # configure logger and console output
@@ -21,15 +17,15 @@ def main():
     
     if BYPASS_RIC: # connect directly to gnb_emu
         #xapp_control_ricbypass.receive_from_socket()
-        print("encoding initial ric indication request")
+        print("Encoding initial ric indication request")
         master_mess = RAN_message()
         master_mess.msg_type = RAN_message_type.INDICATION_REQUEST
         inner_mess = RAN_indication_request()
-        inner_mess.target_params.extend([RAN_parameter.GNB_ID, RAN_parameter.SOMETHING])
+        inner_mess.target_params.extend([RAN_parameter.GNB_ID, RAN_parameter.UE_LIST])
         #inner_mess.target_params.extend([RAN_parameter.GNB_ID])
         master_mess.ran_indication_request.CopyFrom(inner_mess)
         buf = master_mess.SerializeToString()
-        xapp_control_ricbypass.sent_to_socket(buf)
+        xapp_control_ricbypass.send_to_socket(buf)
         print("request sent, now waiting for incoming answers")
 
         while True:
@@ -37,6 +33,8 @@ def main():
             ran_ind_resp = RAN_indication_response()
             ran_ind_resp.ParseFromString(r_buf)
             print(ran_ind_resp)
+            sleep(1)
+            xapp_control_ricbypass.send_to_socket(buf)
 
         r_buf = xapp_control_ricbypass.receive_from_socket()
         ran_ind_resp = RAN_indication_response()
@@ -44,29 +42,11 @@ def main():
         print(ran_ind_resp)
 
         exit()
-    waittime = 1
-    print("Will wait {} seconds for xapp-sm to start".format(waittime))
-    sleep(waittime)
-    print("encoding initial ric indication request")
-    master_mess = RAN_message()
-    master_mess.msg_type = RAN_message_type.INDICATION_REQUEST
-    inner_mess = RAN_indication_request()
-    inner_mess.target_params.extend([RAN_parameter.GNB_ID, RAN_parameter.SOMETHING])
-    #inner_mess.target_params.extend([RAN_parameter.GNB_ID])
-    master_mess.ran_indication_request.CopyFrom(inner_mess)
-    buf = master_mess.SerializeToString()
-    print(buf)
-
-    UDPClientSocketOut = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-    UDPClientSocketOut.sendto(buf, ("127.0.0.1",7000))
-
-    print("request sent, now waiting for incoming answers")
 
     control_sck = open_control_socket(4200)
 
-
     while True:
-        #logging.info("loop again")
+        logging.info("loop again")
         data_sck = receive_from_socket(control_sck)
         if len(data_sck) <= 0:
             logging.info("leq 0 data")
@@ -76,40 +56,9 @@ def main():
                 logging.info('Negative value for socket')
                 break
         else:
-            #logging.info('Received data: ' + repr(data_sck))
-            #print(data_sck)
-            print("Recevied RIC indication response:")
-            resp = RAN_indication_response()
-            resp.ParseFromString(data_sck)
-            print(resp)
-
-            print("Sending RIC indication control with random data")
-            master_mess = RAN_message()
-            master_mess.msg_type = RAN_message_type.CONTROL
-            inner_mess = RAN_control_request()
-
-            # gnb id control element 
-            gnb_id_control_element = RAN_param_map_entry()
-            gnb_id_control_element.key = RAN_parameter.GNB_ID
-            gnb_id_control_element.value = str(randint(1,10))
-
-            # something control element
-            something_control_element = RAN_param_map_entry()
-            something_control_element.key = RAN_parameter.SOMETHING
-            something_control_element.value = str(randint(1,10))
-
-            inner_mess.target_param_map.extend([gnb_id_control_element, something_control_element])
-            master_mess.ran_control_request.CopyFrom(inner_mess)
-
-            print("printing built control message:")
-            print(master_mess)
-
-            ctrl_buf = master_mess.SerializeToString()
-            send_socket(control_sck, ctrl_buf)
-            print("Message sent")
-
-            #logging.info("Sending something back")
-            #send_socket(control_sck, "test test test")
+            logging.info('Received data: ' + repr(data_sck))
+            logging.info("Sending something back")
+            send_socket(control_sck, "test test test")
 
 
 if __name__ == '__main__':
