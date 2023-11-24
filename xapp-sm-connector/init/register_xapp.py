@@ -93,6 +93,7 @@ def get_service(host, service) -> str:
         print('service : %s, host : %s, appnamespace : %s' % (service, host, app_namespace))
         
         svc = service.format(app_namespace.upper(), host.upper())
+        print('svc : %s' % (svc))
         urlkey = svc.replace('-', '_')
         url = os.environ.get(urlkey).split('//')
         print('Service urlkey: %s, and url: %s' % (urlkey, url))

@@ -392,7 +392,7 @@ void Xapp::send_ric_control_request(char* payload, int payload_len, std::string 
 void Xapp::handle_rx_msg_agent(std::string agent_ip) {
     std::cout << "Opening RX thread with agent " << agent_ip << std::endl;
 
-    const size_t max_size = 1024;
+    const size_t max_size = 256;
     char buf[max_size] = {0};
 
     // listen to control from agent

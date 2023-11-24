@@ -27,7 +27,7 @@
 #ifndef SRC_XAPP_ASN_E2AP_CONSTS_HPP_
 #define SRC_XAPP_ASN_E2AP_CONSTS_HPP_
 
-#define IE_SIZE ((int)1024)
+#define IE_SIZE ((int)128)
 #define ERR_LEN ((int)128)
 #define RIC_CONTROL_ACK_IES_COUNT 5
 #define RIC_CONTROL_FAILURE_IES_COUNT 5

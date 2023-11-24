@@ -103,7 +103,7 @@ public:
 private:
 
   size_t _hw_msg_size;
-  unsigned char _hw_msg[1024];
+  unsigned char _hw_msg[128];
 
   E2SM_HelloWorld_ControlMessage_t* _message;
   E2SM_HelloWorld_ControlMessage_Format1_t _message_fmt1;

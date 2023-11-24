@@ -1,10 +1,5 @@
-src/**/*.o
+__pycache__/
+*.o
+
 src/hw_xapp_main
-asn1c_defs/*.o
-*.deb
 
-dbaas/
-sdl/
-
-.DS_Store
-._*

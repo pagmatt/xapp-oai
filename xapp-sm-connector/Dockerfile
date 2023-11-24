@@ -79,7 +79,8 @@ RUN dpkg -i rnib_${RNIB_VER}_all.deb
 WORKDIR ${STAGE_DIR}
 RUN apt-get install -y cpputest
 RUN apt-get remove -y libboost-all-dev
-RUN apt-get install -y libboost-all-dev libhiredis-dev
+RUN apt-get install -y  libboost-all-dev
+RUN apt-get install -y libhiredis-dev
 #RUN apt-get install -y valgrind
 
 RUN git clone https://gerrit.o-ran-sc.org/r/ric-plt/dbaas
@@ -161,4 +162,6 @@ ENV  RMR_RTG_SVC="9999" \
      VERBOSE=0 \
      CONFIG_FILE=/opt/ric/config/config-file.json
      
+      
+
 CMD python3 /etc/xapp/init_script.py $CONFIG_FILE

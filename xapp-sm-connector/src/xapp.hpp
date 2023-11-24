@@ -64,7 +64,7 @@ using namespace rapidjson;
 // id of gnb to control as seen from the ric
 // #define GNB_ID ""
 
-#define DEBUG 1
+#define DEBUG 0
 
 
 class Xapp{

@@ -35,6 +35,8 @@ import ast
 from register_xapp import register_xapp
 from xapp_utils import set_target_gnb
 
+SKIP_XAPP_REGISTRATION = True
+
 
 def signal_handler(signum, frame):
     print("Received signal {0}\n".format(signum))
@@ -97,8 +99,9 @@ if __name__ == "__main__":
 
     # this needs to be done before the xApp has messages to receive,
     # otherwise they will stop at the e2term 
-    print("Registering xApp with app manager")
-    register_xapp(config)
+    if(SKIP_XAPP_REGISTRATION):
+        print("Registering xApp with app manager")
+        register_xapp(config)
 
     print('Checking target gNB')
     set_target_gnb(config)

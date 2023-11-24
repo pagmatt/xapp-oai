@@ -52,7 +52,7 @@ RICcontrolRequest-IEs E2AP-PROTOCOL-IES ::= {
 #include <ProtocolIE-Field.h>
 
 #define NUM_CONTROL_REQUEST_IES 6
-#define IE_SIZE ((int)1024)
+#define IE_SIZE ((int)128)
 
 template <typename E2SMControlHeader, typename E2SMControlMessage>
 class E2APControlMessage{
